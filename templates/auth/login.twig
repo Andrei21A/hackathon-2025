@@ -3,6 +3,11 @@
 {% block content %}
     <h1 class="text-2xl font-bold mb-4">Login</h1>
     <form action="/login" method="POST" class="max-w-sm mx-auto">
+        {% if errors.form is defined and errors.form is not empty %}
+            <div class="bg-red-500 text-white p-3 rounded mb-4">
+                {{ errors.form }}
+            </div>
+        {% endif %}
         <div class="mb-4">
             <label for="username" class="block text-gray-400 text-sm font-bold mb-2">Username</label>
             <input type="text" id="username" name="username" required
@@ -18,4 +23,5 @@
             Login
         </button>
     </form>
+    
 {% endblock %}

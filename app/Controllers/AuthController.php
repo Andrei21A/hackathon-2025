@@ -45,6 +45,14 @@ class AuthController extends BaseController
             $errors['username'] = 'Username or password is not completed';
         }
 
+        if (strlen($username) < 4) {
+            $errors['username'] = 'Username must be at least 4 characters';
+        }
+
+        if (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters';
+        }
+
         if (empty($errors)) {
             try {
                 $this->authService->register($username, $password);
@@ -86,13 +94,12 @@ class AuthController extends BaseController
             return $response->withHeader('Location', '/')->withStatus(302);
         } catch (\Exception $e) {
             $errors['form'] = $e->getMessage();
+            $this->logger->warning("Login failed for user '{$username}': " . $e->getMessage());
         }
 
         return $this->render($response, 'auth/login.twig', [
             'username' => $username,
             'errors' => $errors,
-            'currentUserId' => $_SESSION['user_id'] ?? null,
-            'currentUserName' => $_SESSION['username'] ?? null,
         ]);
     }
 

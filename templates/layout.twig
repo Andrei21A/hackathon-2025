@@ -35,6 +35,13 @@
 <footer class="bg-gray-800 h-8 flex items-center justify-center text-white w-full">
     (c) Evozon Hackathon 2025
 </footer>
+
+{% block scripts %}
+<script>
+const currentUserName = "{{ currentUserName|default('')|e('js') }}";
+console.log(currentUserName);
+</script>
+{% endblock%}
 </body>
 </html>
 
