@@ -24,40 +24,44 @@ About the skeleton:
 
 Install dependencies:
 
-```
 composer install
-```
+
 
 Set up the database:
 
-```
 cd database
 ./apply_migrations.sh
-```
+
 
 Note: be aware that, if you are using WSL2 (Windows Subsystem for Linux), you'll have trouble opening SQLite databases
 with a DB management app (PHPStorm, for example) in Windows **when they are stored within the virtualized WSL2 drive**.
 The solution is to store the `db.sqlite` file on the Windows drive (`/mnt/c`) and configure the path to the file in the
 application config (`.env`):
 
-```
 cd database
-./apply_migrations.sh /mnt/c/Users/<user>/AppData/Local/Temp/db.sqlite
-```
+./apply_migrations.sh /mnt/c/Users/&lt;user>/AppData/Local/Temp/db.sqlite
+
 
 Copy `.env.example` to `.env` and configure as necessary:
 
-```
 cp .env.example .env
-```
+
 
 Run the built-in server on http://localhost:8000
 
-```
 composer start
-```
+
 
 ## Features
+
+This Budget Tracker application provides the following key features:
+
+* **User Authentication:** Users can register, log in, and log out securely. Registration includes username and password validation.
+* **Expense Management (CRUD):** Users can create, view, edit, and delete their expenses. Expenses are listed with pagination, sorting by date, and filtering by year/month.
+* **Dashboard Overview:** A dashboard page provides a summary of monthly expenses, including total expenditure and per-category totals and averages.
+* **CSV Import:** Users can import expense data from a CSV file directly from the expenses list page. Duplicate entries and unknown categories are skipped, and import details are logged.
+* **Input Validation:** Robust server-side validation is applied to all form submissions to ensure data integrity.
+* **Secure Practices:** Password hashing is used for user registration, and prepared statements are utilized for database queries to prevent SQL injection. Users can only manage their own expenses.
 
 ## Tasks
 
@@ -89,25 +93,37 @@ Before delivering your solution, make sure to:
 
 - run static analysis tools to check for code issues:
 
-```
 composer analyze
-```
+
 
 - run unit tests (in case you added any):
 
-```
 composer test
-```
+
 
 A solution with passing analysis and unit tests will receive extra points.
 
 ## Delivery details
 
 Participant:
-- Full name: ...
-- Email address: ...
+- Full name: [Your Full Name]
+- Email address: [Your Email Address]
 
 Features fully implemented:
-- ...
+- Register/Login/Logout functionality
+- CRUD (Create/Read/Update/Delete) for Expense entities
+- Dashboard page with monthly expense summary (total expenditure, per-category totals and averages)
+- CSV file import for expense data (including skipping duplicates/unknown categories and logging)
+- Prepared statements for DB queries
+- Users can only change/delete their own expenses
+- Proper password hashing for registration and verification for login
+- "Password again" input for registration
+- CSRF protection for register and login forms
+- Session fixation prevention for login
+- Categories and budget thresholds are configured via `.env` file.
+- Pagination links for Expenses listing (previous/next only)
 
-Other instructions about setting up the application (if any): ...
+Other instructions about setting up the application (if any):
+- Ensure you have the necessary PHP extensions enabled (e.g., `pdo_sqlite`).
+- If using WSL2, remember to store the `db.sqlite` file on the Windows drive as described in the "Set up the database" section.
+- Categories and their budgets are defined in the `.env` file (e.g., `APP_CATEGORIES="Gr
