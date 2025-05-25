@@ -74,8 +74,8 @@ class PdoUserRepository implements UserRepositoryInterface
                 'password_hash' => $user->passwordHash,
                 'id' => $user->id,
             ]);
-        } //Insert
-        else {
+        } 
+        else { //Insert
             $query = 'INSERT INTO users (username, password_hash, created_at) VALUES (:username, :password_hash, :created_at)';
             $statement = $this->pdo->prepare($query);
             $statement->execute([

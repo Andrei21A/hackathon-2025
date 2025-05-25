@@ -1,6 +1,9 @@
 {% extends 'layout.twig' %}
 {% block title %}Add Expense{% endblock %}
 {% block content %}
+{% if errors.general %}
+    <p class="text-red-500 font-semibold mb-4">{{ errors.general }}</p>
+{% endif %}
     <h1 class="text-2xl font-bold mb-4">Add Expense</h1>
     <section class="mb-8">
         <form action="/expenses" method="POST" class="max-w-sm mx-auto">
