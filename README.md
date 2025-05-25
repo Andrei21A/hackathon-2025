@@ -106,8 +106,8 @@ A solution with passing analysis and unit tests will receive extra points.
 ## Delivery details
 
 Participant:
-- Full name: [Your Full Name]
-- Email address: [Your Email Address]
+- Full name: AneaRazvanAndrei
+- Email address: andreianea29@gmail.com
 
 Features fully implemented:
 - Register/Login/Logout functionality
