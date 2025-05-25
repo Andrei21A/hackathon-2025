@@ -13,7 +13,7 @@ use Slim\Views\Twig;
 
 class ExpenseController extends BaseController
 {
-    private const PAGE_SIZE = 20;
+    private const PAGE_SIZE = 10;
 
     public function __construct(
         Twig $view,
@@ -48,12 +48,14 @@ class ExpenseController extends BaseController
             'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
         ];
 
-        $limit = 10;
+        $limit = self::PAGE_SIZE;
         $offset = ($page - 1) * $limit;
 
         $expenses = $this->expenseRepository->findBy($criteria, $offset, $limit);
         $total = $this->expenseRepository->countBy($criteria);
         $hasMore = $total > $page * $limit;
+        $totalPages = (int) ceil($total / self::PAGE_SIZE);
+
 
         // Get years with expenses (for filter dropdown)
         $yearsRaw = $this->expenseRepository->listExpenditureYears($user);
@@ -67,6 +69,7 @@ class ExpenseController extends BaseController
             'years' => $years,
             'year' => $year,
             'month' => $month,
+            'totalPages' => $totalPages,
         ]);
     }
 
@@ -266,9 +269,14 @@ class ExpenseController extends BaseController
 
         try {
             $this->expenseRepository->delete($expenseId);
+
+            $_SESSION['flash_success'] = 'Expense deleted successfully.';
+
             return $response->withHeader('Location', '/expenses')->withStatus(302);
         } catch (\Exception $e) {
-            return $response->withStatus(500);
+            $_SESSION['flash_error'] = 'Failed to delete expense. Please try again.';
+
+            return $response->withHeader('Location', '/expenses')->withStatus(302);
         }
     }
 
@@ -291,10 +299,17 @@ class ExpenseController extends BaseController
             return $response->withStatus(401);
         }
 
-        $importedCount = $this->expenseService->importFromCsv($user, $csvFile);
+        try {
+            $importedCount = $this->expenseService->importFromCsv($user, $csvFile);
 
-        $response->getBody()->write("Imported $importedCount rows successfully.");
+            $_SESSION['flash_success'] = "Successfully imported $importedCount expenses.";
 
-        return $response;
+            return $response->withHeader('Location', '/expenses')->withStatus(302);
+
+        } catch (\Exception $e) {
+            $_SESSION['flash_error'] = 'Failed to import expenses: ' . $e->getMessage();
+            return $response->withHeader('Location', '/expenses')->withStatus(302);
+        }
+
     }
 }

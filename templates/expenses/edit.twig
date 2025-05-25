@@ -18,7 +18,7 @@
             <div class="mb-4 flex items-center">
                 <label for="date" class="w-24 text-gray-300 font-bold">Date:</label>
                 <input type="date" id="date" name="date" required
-                       value="{{ expense.date|date('Y-m-d') }}"
+                       value="{{ old.date ?? expense.date|date('Y-m-d') }}"
                        class="flex-1 shadow appearance-none border rounded py-2 px-3 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:shadow-outline">
             </div>
 
@@ -27,9 +27,11 @@
                 <select id="category" name="category" required
                         class="flex-1 shadow appearance-none border rounded py-2 px-3 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:shadow-outline">
                     <option value="">Select a category</option>
-                    {% for option in ['groceries', 'utilities', 'transport', 'entertainment', 'housing', 'health', 'other'] %}
-                        <option value="{{ option }}" {% if expense.category == option %}selected{% endif %}>
-                            {{ option|capitalize }}
+                    {% for category_option in categories %}
+                        <option value="{{ category_option }}"
+                                {% if (old.category is defined and old.category == category_option) or
+                                      (old.category is not defined and expense.category == category_option) %}selected{% endif %}>
+                            {{ category_option }} {# Display the category name as is #}
                         </option>
                     {% endfor %}
                 </select>
@@ -38,14 +40,20 @@
             <div class="mb-4 flex items-center">
                 <label for="amount" class="w-24 text-gray-300 font-bold">Amount:</label>
                 <input type="number" id="amount" name="amount" step="0.01" required
-                       value="{{ expense.amount }}"
+                       value="{{ (old.amount is defined) ? old.amount : (expense.amountCents / 100) }}"
                        class="flex-1 shadow appearance-none border rounded py-2 px-3 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:shadow-outline">
+                {% if errors.amount is defined %}
+                    <p class="text-red-500 text-xs italic ml-2">{{ errors.amount }}</p>
+                {% endif %}
             </div>
 
             <div class="mb-6 flex items-start">
                 <label for="description" class="w-24 text-gray-300 font-bold mt-2">Description:</label>
                 <textarea id="description" name="description" rows="2"
-                          class="flex-1 shadow appearance-none border rounded py-2 px-3 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:shadow-outline">{{ expense.description }}</textarea>
+                          class="flex-1 shadow appearance-none border rounded py-2 px-3 bg-gray-700 text-gray-100 leading-tight focus:outline-none focus:shadow-outline">{{ old.description ?? expense.description }}</textarea>
+                {% if errors.description is defined %}
+                    <p class="text-red-500 text-xs italic ml-2">{{ errors.description }}</p>
+                {% endif %}
             </div>
 
             <div class="flex justify-end">

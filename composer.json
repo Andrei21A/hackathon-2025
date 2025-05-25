@@ -34,7 +34,6 @@
       "vendor/bin/phpstan analyse app --level=3"
     ],
     "test": "vendor/bin/phpunit"
-
   },
   "minimum-stability": "stable",
   "license": "MIT"

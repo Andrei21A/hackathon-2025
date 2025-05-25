@@ -34,4 +34,5 @@ return static function (App $app) {
 
             return $handler->handle($request);
         });
+
 };

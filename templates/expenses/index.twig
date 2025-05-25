@@ -6,6 +6,17 @@
 
 <h1 class="text-2xl font-bold mb-4">Expenses</h1>
 
+{% if session['flash_success'] %}
+    <div class="bg-green-500 text-white p-4 rounded mb-4">
+        {{ session['flash_success'] }}
+    </div>
+{% endif %}
+{% if session['flash_error'] %}
+    <div class="bg-red-500 text-white p-4 rounded mb-4">
+        {{ session['flash_error'] }}
+    </div>
+{% endif %}
+
 {# TODO: Configure the necessary href attribute #}
 <a href="/expenses/create"
    class="inline-block mb-6 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
@@ -102,6 +113,26 @@
         {% else %}
             <span></span>
         {% endif %}
+
+        {% if totalPages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4 flex justify-center">
+        <ul class="inline-flex space-x-2">
+            {% for i in 1..totalPages %}
+                <li>
+                    <a href="?page={{ i }}&year={{ year }}&month={{ month }}"
+                       class="px-3 py-1 rounded
+                              {% if i == page %}
+                                  bg-blue-600 text-white font-bold
+                              {% else %}
+                                  bg-gray-700 text-gray-300 hover:bg-gray-600
+                              {% endif %}">
+                        {{ i }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </nav>
+{% endif %}
 
         {# TODO: hide link when there is no next page available, fill in HREF #}
         {% if hasMorePages %}

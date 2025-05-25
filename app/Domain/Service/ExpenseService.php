@@ -33,10 +33,7 @@ class ExpenseService
         string $description,
         DateTimeImmutable $date,
         string $category,
-    ): void {
-        // TODO: implement this to create a new expense entity, perform validation, and persist
-        // TODO: here is a code sample to start with
-
+    ): Expense {
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Amount must be positive.');
         }
@@ -47,11 +44,14 @@ class ExpenseService
             throw new \InvalidArgumentException('Category cannot be empty.');
         }
 
-        $expense = new Expense(null, $user->id, $date, $category, (int) round($amount * 100), $description);
+        $formattedCategory = ucfirst(strtolower(trim($category)));
+
+        $expense = new Expense(null, $user->id, $date, $formattedCategory, (int) round($amount * 100), $description);
         $this->expenses->save($expense);
 
-
+        return $expense;
     }
+
 
     public function update(
         Expense $expense,
@@ -73,28 +73,18 @@ class ExpenseService
 
         $amountCents = (int) round($amount * 100);
 
-        // Update the expense properties
+        $formattedCategory = ucfirst(strtolower(trim($category)));
+
         $updatedExpense = new Expense(
             $expense->id,
             $expense->userId,
             $date,
-            $category,
+            $formattedCategory,
             $amountCents,
             $description
         );
 
         $this->expenses->save($updatedExpense);
-    }
-
-    public function getTotalExpensesCount(User $user, int $year, int $month): int
-    {
-        return $this->expenses->countBy(['user_id' => $user->id, 'year' => $year, 'month' => $month]);
-    }
-
-    public function getYearsWithExpenses(User $user): array
-    {
-        $yearsData = $this->expenses->listExpenditureYears($user);
-        return array_column($yearsData, 'year');
     }
 
     public function importFromCsv(User $user, UploadedFileInterface $csvFile): int
