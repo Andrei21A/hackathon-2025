@@ -11,7 +11,8 @@ abstract class BaseController
 {
     public function __construct(
         protected Twig $view,
-    ) {}
+    ) {
+    }
 
     protected function render(Response $response, string $template, array $data = []): Response
     {
@@ -19,4 +20,18 @@ abstract class BaseController
     }
 
     // TODO: add here any common controller logic and use in concrete controllers
+
+    protected function getCsrfToken(): string
+    {
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $_SESSION['csrf_token'];
+    }
+
+    protected function validateCsrfToken(?string $submittedToken): bool
+    {
+        $token = $_SESSION['csrf_token'] ?? '';
+        return $submittedToken !== null && hash_equals($token, $submittedToken);
+    }
 }

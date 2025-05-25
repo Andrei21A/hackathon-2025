@@ -28,6 +28,7 @@ class AuthController extends BaseController
         return $this->render($response, 'auth/register.twig', [
             'username' => '',
             'password' => '',
+            'csrf_token' => $this->getCsrfToken(),
         ]);
     }
 
@@ -35,6 +36,18 @@ class AuthController extends BaseController
     {
         // TODO: call corresponding service to perform user registration
         $data = (array) $request->getParsedBody();
+
+        if (
+            empty($data['csrf_token']) ||
+            $data['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')
+        ) {
+            $errors['form'] = 'Invalid CSRF token.';
+            return $this->render($response, 'auth/register.twig', [
+                'username' => $data['username'] ?? '',
+                'errors' => $errors,
+                'csrf_token' => $this->getCsrfToken(),
+            ]);
+        }
 
         $username = trim($data['username']);
         $password = trim($data['password']);
@@ -62,9 +75,10 @@ class AuthController extends BaseController
             }
         }
 
-        return $this->render($response, 'auth/register.twig', [
+        return $this->render($response, 'auth/login.twig', [
             'username' => $username,
             'errors' => $errors,
+            'csrf_token' => $this->getCsrfToken(),
         ]);
     }
 
@@ -77,6 +91,7 @@ class AuthController extends BaseController
         return $this->render($response, 'auth/login.twig', [
             'username' => '',
             'password' => '',
+            'csrf_token' => $this->getCsrfToken(),
         ]);
     }
 
@@ -84,6 +99,19 @@ class AuthController extends BaseController
     {
         // TODO: call corresponding service to perform user login, handle login failures
         $data = (array) $request->getParsedBody();
+
+        if (
+            empty($data['csrf_token']) ||
+            $data['csrf_token'] !== ($_SESSION['csrf_token'] ?? '')
+        ) {
+            $errors['form'] = 'Invalid CSRF token.';
+            return $this->render($response, 'auth/login.twig', [
+                'username' => $data['username'] ?? '',
+                'errors' => $errors,
+                'csrf_token' => $this->getCsrfToken(),
+            ]);
+        }
+
         $username = trim($data['username']);
         $password = trim($data['password']);
 
@@ -100,6 +128,7 @@ class AuthController extends BaseController
         return $this->render($response, 'auth/login.twig', [
             'username' => $username,
             'errors' => $errors,
+            'csrf_token' => $this->getCsrfToken(),
         ]);
     }
 
@@ -110,6 +139,8 @@ class AuthController extends BaseController
         //Deleting the session
         unset($_SESSION['user_id']);
         unset($_SESSION['username']);
+
+        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['csrf_token']);
 
         session_destroy();
 

@@ -8,12 +8,14 @@ use App\Domain\Entity\Expense;
 use App\Domain\Entity\User;
 use App\Domain\Repository\ExpenseRepositoryInterface;
 use DateTimeImmutable;
+use PDO;
 use Psr\Http\Message\UploadedFileInterface;
 
 class ExpenseService
 {
     public function __construct(
         private readonly ExpenseRepositoryInterface $expenses,
+        private readonly PDO $pdo
     ) {
     }
 
@@ -45,7 +47,7 @@ class ExpenseService
             throw new \InvalidArgumentException('Category cannot be empty.');
         }
 
-        $expense = new Expense(null, $user->id, $date, $category, (int) $amount, $description);
+        $expense = new Expense(null, $user->id, $date, $category, (int) round($amount * 100), $description);
         $this->expenses->save($expense);
 
 
@@ -84,11 +86,76 @@ class ExpenseService
         $this->expenses->save($updatedExpense);
     }
 
+    public function getTotalExpensesCount(User $user, int $year, int $month): int
+    {
+        return $this->expenses->countBy(['user_id' => $user->id, 'year' => $year, 'month' => $month]);
+    }
+
+    public function getYearsWithExpenses(User $user): array
+    {
+        $yearsData = $this->expenses->listExpenditureYears($user);
+        return array_column($yearsData, 'year');
+    }
+
     public function importFromCsv(User $user, UploadedFileInterface $csvFile): int
     {
         // TODO: process rows in file stream, create and persist entities
         // TODO: for extra points wrap the whole import in a transaction and rollback only in case writing to DB fails
 
-        return 0; // number of imported rows
+        $stream = $csvFile->getStream();
+        $stream->rewind();
+
+        $resource = $stream->detach();
+
+        $this->pdo->beginTransaction();
+
+        $importedCount = 0;
+
+        try {
+            while (($data = fgetcsv($resource, 0, ",", '"', "\\")) !== false) {
+                if (count($data) < 4) {
+                    continue;
+                }
+
+                $categories = ['Groceries', 'Utilities', 'Transport', 'Entertainment', 'Housing', 'Healthcare', 'Other'];
+
+                [$dateStr, $amountStr, $description, $category] = $data;
+
+                if (empty(trim($description))) {
+                    continue;
+                }
+
+                if (!in_array($category, $categories)) {
+                    continue;
+                }
+
+                $date = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', trim($dateStr));
+                if (!$date) {
+                    continue;
+                }
+
+                $amountCents = (int) round(floatval(str_replace(',', '.', trim($amountStr))) * 100);
+
+                $expense = new Expense(
+                    id: null,
+                    userId: $user->id,
+                    date: $date,
+                    category: trim($category),
+                    amountCents: $amountCents,
+                    description: trim($description)
+                );
+
+                $this->expenses->save($expense);
+                $importedCount++;
+            }
+
+            $this->pdo->commit();
+        } catch (\Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+
+        return $importedCount;
     }
+
 }

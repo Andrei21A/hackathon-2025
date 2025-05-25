@@ -37,7 +37,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     public function save(Expense $expense): void
     {
         // Update
-        if ($expense->id > 0 || $expense->id !== null) {
+        if ($expense->id > 0 && $expense->id !== null) {
             $query = 'UPDATE expenses SET user_id = :user_id, date = :date, category = :category, amount_cents = :amount_cents, description = :description WHERE id = :id';
             $statement = $this->pdo->prepare($query);
             $statement->execute([
@@ -91,7 +91,6 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
         $query .= ' ORDER BY date DESC LIMIT ' . $limit . ' OFFSET ' . $from;
 
-
         $statement = $this->pdo->prepare($query);
         $statement->execute($params);
 
@@ -109,7 +108,13 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $params = [];
 
         foreach ($criteria as $key => $value) {
-            $conditions[] = "$key = ?";
+            if ($key === 'year') {
+                $conditions[] = "substr(date, 1, 4) = ?";
+            } elseif ($key === 'month') {
+                $conditions[] = "substr(date, 6, 2) = ?";
+            } else {
+                $conditions[] = "$key = ?";
+            }
             $params[] = $value;
         }
 
@@ -127,12 +132,11 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
     {
         // TODO: Implement listExpenditureYears() method.
 
-        $query = 'SELECT YEAR(date) AS year, SUM(amount_cents) AS anual_total
-        FROM expenses
-        WHERE user_id = :user_id
-        GROUP BY year
-        ORDER BY year DESC;
-        ';
+        $query = 'SELECT strftime(\'%Y\', date) AS year, SUM(amount_cents) AS anual_total
+              FROM expenses
+              WHERE user_id = :user_id
+              GROUP BY year
+              ORDER BY year DESC;';
 
         $statement = $this->pdo->prepare($query);
         $statement->execute(['user_id' => $user->id]);
@@ -141,7 +145,7 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         return array_map(function ($row) {
             return [
                 'year' => (int) $row['year'],
-                'annual_total' => (float) $row['annual_total'],
+                'anual_total' => (float) $row['anual_total'],
             ];
         }, $data);
     }
@@ -153,7 +157,13 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $params = [];
 
         foreach ($criteria as $key => $value) {
-            $conditions[] = "$key = ?";
+            if ($key === 'year') {
+                $conditions[] = "substr(date, 1, 4) = ?";
+            } elseif ($key === 'month') {
+                $conditions[] = "substr(date, 6, 2) = ?";
+            } else {
+                $conditions[] = "$key = ?";
+            }
             $params[] = $value;
         }
 
@@ -168,14 +178,18 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
         $data = $statement->fetchAll();
 
-        return array_map(function ($row) {
-            return [
-                'category' => $row['category'],
-                'total_amount' => (int) $row['total_amount'],
-            ];
-        }, $data);
-    }
+        $totals = [];
 
+        foreach ($data as $row) {
+            // Normalize category: first letter uppercase, rest lowercase
+            $category = ucfirst(strtolower($row['category']));
+            $totals[$category] = [
+                'total' => (int) $row['total_amount'], // use 'total' to match Twig template key
+            ];
+        }
+
+        return $totals;
+    }
 
     public function averageAmountsByCategory(array $criteria): array
     {
@@ -185,7 +199,13 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $params = [];
 
         foreach ($criteria as $key => $value) {
-            $conditions[] = "$key = ?";
+            if ($key === 'year') {
+                $conditions[] = "substr(date, 1, 4) = ?";
+            } elseif ($key === 'month') {
+                $conditions[] = "substr(date, 6, 2) = ?";
+            } else {
+                $conditions[] = "$key = ?";
+            }
             $params[] = $value;
         }
 
@@ -200,13 +220,18 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
         $data = $statement->fetchAll();
 
-        return array_map(function ($row) {
-            return [
-                'category' => $row['category'],
-                'avg_amount' => (int) $row['total_amount'],
+        $averages = [];
+
+        foreach ($data as $row) {
+            $category = ucfirst(strtolower($row['category'])); // Normalize to match budget keys
+            $averages[$category] = [
+                'average' => (int) round($row['avg_amount']), // return in cents
             ];
-        }, $data);
+        }
+
+        return $averages;
     }
+
 
     public function sumAmounts(array $criteria): float
     {
@@ -216,7 +241,13 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
         $params = [];
 
         foreach ($criteria as $key => $value) {
-            $conditions[] = "$key = ?";
+            if ($key === 'year') {
+                $conditions[] = "substr(date, 1, 4) = ?";
+            } elseif ($key === 'month') {
+                $conditions[] = "substr(date, 6, 2) = ?";
+            } else {
+                $conditions[] = "$key = ?";
+            }
             $params[] = $value;
         }
 
@@ -232,18 +263,26 @@ class PdoExpenseRepository implements ExpenseRepositoryInterface
 
     }
 
-    /**
-     * @throws Exception
-     */
     private function createExpenseFromData(mixed $data): Expense
     {
-        return new Expense(
-            $data['id'],
-            $data['user_id'],
-            new DateTimeImmutable($data['date']),
-            $data['category'],
-            $data['amount_cents'],
-            $data['description'],
-        );
+        error_log("Raw expense data: " . print_r($data, true));
+
+        try {
+            $expense = new Expense(
+                $data['id'],
+                $data['user_id'],
+                new DateTimeImmutable($data['date']),
+                $data['category'],
+                $data['amount_cents'],
+                $data['description'],
+            );
+
+            error_log("Created expense with ID: " . $expense->id);
+
+            return $expense;
+        } catch (Exception $e) {
+            error_log("Error creating expense: " . $e->getMessage());
+            throw $e;
+        }
     }
 }

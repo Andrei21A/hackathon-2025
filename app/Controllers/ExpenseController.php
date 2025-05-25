@@ -34,21 +34,39 @@ class ExpenseController extends BaseController
         // - use the expense service to fetch expenses for the current user
 
         // parse request parameters
-        $userId = $_SESSION['user_id']; // TODO: obtain logged-in user ID from session
+        $queryParams = $request->getQueryParams();
+        $year = isset($queryParams['year']) ? (int) $queryParams['year'] : (int) date('Y');
+        $month = isset($queryParams['month']) ? (int) $queryParams['month'] : (int) date('n');
+        $page = isset($queryParams['page']) ? (int) $queryParams['page'] : 1;
+
+        $userId = $_SESSION['user_id'];
         $user = $this->userRepository->find($userId);
-        $page = (int) ($request->getQueryParams()['page'] ?? 1);
-        $pageSize = (int) ($request->getQueryParams()['pageSize'] ?? self::PAGE_SIZE);
 
+        $criteria = [
+            'user_id' => $user->id,
+            'year' => (string) $year,
+            'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
+        ];
 
-        $year = (int) ($request->getQueryParams()['year'] ?? date('Y'));
-        $month = (int) ($request->getQueryParams()['month'] ?? date('m'));
+        $limit = 10;
+        $offset = ($page - 1) * $limit;
 
-        $expenses = $this->expenseService->list($user, $year, $month, $page, $pageSize);
+        $expenses = $this->expenseRepository->findBy($criteria, $offset, $limit);
+        $total = $this->expenseRepository->countBy($criteria);
+        $hasMore = $total > $page * $limit;
+
+        // Get years with expenses (for filter dropdown)
+        $yearsRaw = $this->expenseRepository->listExpenditureYears($user);
+        $years = array_column($yearsRaw, 'year');
 
         return $this->render($response, 'expenses/index.twig', [
             'expenses' => $expenses,
+            'total' => $total,
+            'hasMorePages' => $hasMore,
             'page' => $page,
-            'pageSize' => $pageSize,
+            'years' => $years,
+            'year' => $year,
+            'month' => $month,
         ]);
     }
 
@@ -133,7 +151,7 @@ class ExpenseController extends BaseController
         // - load the expense to be edited by its ID (use route params to get it)
         // - check that the logged-in user is the owner of the edited expense, and fail with 403 if not
 
-        $expenseId = (int)$routeParams['id'];
+        $expenseId = (int) $routeParams['id'];
         $userId = $_SESSION['user_id'];
         $expense = $this->expenseRepository->find($expenseId);
 
@@ -154,10 +172,11 @@ class ExpenseController extends BaseController
         ]);
     }
 
-    public function update(Request $request, 
-    Response $response, 
-    array $routeParams): Response
-    {
+    public function update(
+        Request $request,
+        Response $response,
+        array $routeParams
+    ): Response {
         // TODO: implement this action method to update an existing expense
 
         // Hints:
@@ -232,6 +251,49 @@ class ExpenseController extends BaseController
         // - check that the logged-in user is the owner of the edited expense, and fail with 403 if not
         // - call the repository method to delete the expense
         // - redirect to the "expenses.index" page
+        $expenseId = (int) $routeParams['id'];
+        $userId = $_SESSION['user_id'];
+
+        $expense = $this->expenseRepository->find($expenseId);
+
+        if (!$expense) {
+            return $response->withStatus(404);
+        }
+
+        if ($expense->userId !== $userId) {
+            return $response->withStatus(403);
+        }
+
+        try {
+            $this->expenseRepository->delete($expenseId);
+            return $response->withHeader('Location', '/expenses')->withStatus(302);
+        } catch (\Exception $e) {
+            return $response->withStatus(500);
+        }
+    }
+
+    public function import(Request $request, Response $response, array $args): Response
+    {
+        $uploadedFiles = $request->getUploadedFiles();
+
+        if (!isset($uploadedFiles['csvFile'])) {
+            $response->getBody()->write('CSV file is required');
+            return $response->withStatus(400);
+        }
+
+        $csvFile = $uploadedFiles['csvFile'];
+
+        $userId = $_SESSION['user_id'];
+        $user = $this->userRepository->find($userId);
+
+        if (!$user) {
+            $response->getBody()->write('User not authenticated');
+            return $response->withStatus(401);
+        }
+
+        $importedCount = $this->expenseService->importFromCsv($user, $csvFile);
+
+        $response->getBody()->write("Imported $importedCount rows successfully.");
 
         return $response;
     }

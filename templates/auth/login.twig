@@ -2,7 +2,9 @@
 {% block title %}Login{% endblock %}
 {% block content %}
     <h1 class="text-2xl font-bold mb-4">Login</h1>
+
     <form action="/login" method="POST" class="max-w-sm mx-auto">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         {% if errors.form is defined and errors.form is not empty %}
             <div class="bg-red-500 text-white p-3 rounded mb-4">
                 {{ errors.form }}
